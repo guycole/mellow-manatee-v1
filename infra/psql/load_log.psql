@@ -1,0 +1,26 @@
+--
+-- Title: load_log.psql
+-- Description: file load history
+--
+-- epoch_seconds is from timeStamp.epochSeconds
+-- file_name within fresh_dir
+-- file_time is from timeStamp.iso8601
+-- file_type is from project i.e. manatee_v1
+-- host_name is from equipment.hostName
+-- load_time is when file was processed
+-- obs_quantity is population of observations in file
+-- site is from preamble geoLoc.siteName
+--
+create table manatee_load_log (
+  id            bigserial    primary key,
+  epoch_seconds bigint       not null,
+  file_name     varchar(48)  unique not null,
+  file_time     timestamp    not null,
+  file_type     varchar(48)  not null,
+  host_name     varchar(16)  not null,
+  load_time     timestamp    not null default CURRENT_TIMESTAMP,
+  obs_quantity  smallint     not null
+);
+
+grant select, insert, update, delete on manatee_load_log_load_log to manatee_client;
+grant usage, select on sequence manatee_load_log_load_log_id_seq to manatee_client;

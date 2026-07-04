@@ -7,6 +7,9 @@
 #
 PATH=/bin:/usr/bin:/etc:/usr/local/bin; export PATH
 #
+hostname=$(hostname)
+logger -p local3.info "collector manatee $hostname"
+#
 WORK_DIR="/home/wombat/github/mellow-manatee-v1/src/collector"
 #
 echo "start collector"

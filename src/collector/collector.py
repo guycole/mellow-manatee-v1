@@ -14,6 +14,9 @@ import uuid
 import zoneinfo
 
 import socket
+from collections import defaultdict
+
+from pyais import decode
 
 import yaml
 from yaml.loader import SafeLoader
@@ -94,12 +97,29 @@ class Collector:
 
 
     def execute(self) -> None:
+        parts_buffer = defaultdict(list)
+
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             sock.bind(("127.0.0.1", 10110))
             logger.info("listening on UDP 127.0.0.1:10110")
             while True:
                 data, _ = sock.recvfrom(4096)
-                print(data.decode("utf-8", errors="replace"), end="", flush=True)
+                for sentence in data.decode("utf-8", errors="replace").splitlines():
+                    sentence = sentence.strip()
+                    if not sentence:
+                        continue
+                    try:
+                        fields = sentence.split(",")
+                        total_parts = int(fields[1])
+                        seq_id = fields[3]
+                        if total_parts == 1:
+                            print(decode(sentence).asdict(), flush=True)
+                        else:
+                            parts_buffer[seq_id].append(sentence)
+                            if len(parts_buffer[seq_id]) == total_parts:
+                                print(decode(*parts_buffer.pop(seq_id)).asdict(), flush=True)
+                    except Exception as error:
+                        logger.warning("decode error: %s", error)
 
 #
 # argv[1] = configuration filename

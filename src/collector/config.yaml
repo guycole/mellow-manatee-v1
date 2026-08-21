@@ -1,0 +1,17 @@
+crateName: wombat04
+dump978Filename: /tmp/aircraft.json
+equipment:
+  hostName: c4i
+  hostType: odroid c4
+freshDir: /var/wombat/fresh/hyena
+geoLoc:
+  altitude: 0
+  latitude: 38.108
+  longitude: -122.268
+  siteName: vallejo01
+receiver:
+  antenna: multicoupler
+  mode: dump978
+  receiverId: 15
+  task: hyena-v2-dump978
+  type: rtl-sdr-v4

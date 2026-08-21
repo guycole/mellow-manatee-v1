@@ -13,6 +13,8 @@ import time
 import uuid
 import zoneinfo
 
+import socket
+
 import yaml
 from yaml.loader import SafeLoader
 
@@ -47,7 +49,7 @@ class Collector:
         except Exception as error:
             print(error)
 
-    def execute(self) -> None:
+    def execute2(self) -> None:
         print(f"collector execute: {self.receiver_task}")
 
         base_file_name = str(uuid.uuid4())
@@ -90,6 +92,14 @@ class Collector:
 
         self.json_file_writer(outfile_json, results)
 
+
+    def execute(self) -> None:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+            sock.bind(("127.0.0.1", 10110))
+            logger.info("listening on UDP 127.0.0.1:10110")
+            while True:
+                data, _ = sock.recvfrom(4096)
+                print(data.decode("utf-8", errors="replace"), end="", flush=True)
 
 #
 # argv[1] = configuration filename

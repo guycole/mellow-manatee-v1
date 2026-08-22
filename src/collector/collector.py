@@ -177,13 +177,12 @@ class Collector:
                 else:
                     if target.endswith(".raw"):
                         fresh_target = f"{self.fresh_dir}/{target}"
-#                        os.rename(target, fresh_target)
+                        os.rename(target, fresh_target)
                     elif target.endswith(".json"):
                         obs = self.read_observations(target)
-                        self.write_manatee(obs, target)
-                      
-#                        fresh_target = f"{self.fresh_dir}/{target}"
-#                        os.rename(target, fresh_target)
+                        self.write_manatee(obs, target)                      
+                        fresh_target = f"{self.fresh_dir}/{target}"
+                        os.rename(target, fresh_target)
 
     def execute(self) -> None:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:

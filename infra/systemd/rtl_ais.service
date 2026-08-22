@@ -9,6 +9,7 @@ After=multi-user.target
 User=root
 ExecStart=/usr/local/bin/rtl_ais
 StandardOutput=null
+StandardError=journal
 Restart=no
 
 # No [Install] section — rtl_ais is not auto-started at boot.

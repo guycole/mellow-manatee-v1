@@ -1,0 +1,16 @@
+# /etc/systemd/system/rtl_ais_listener.service
+# systemctl daemon-reload 
+
+[Unit]
+Description=rtl_ais_listener
+After=multi-user.target
+
+[Service]
+User=wombat
+ExecStart=/home/wombat/github/mellow-manatee-v1/bin/listener.sh
+StandardOutput=null
+StandardError=journal
+Restart=no
+
+# No [Install] section — rtl_ais_listener is not auto-started at boot.
+# It is started on-demand by bootboy.py via 'systemctl start rtl_ais_listener.service'.

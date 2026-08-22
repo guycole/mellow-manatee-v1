@@ -157,7 +157,7 @@ class Collector:
             try:
                 buffer = decode_file.readlines()
                 for row in buffer:
-                    observations.append(json.loads(row))
+                    observations.extend(json.loads(row))
             except Exception as error:
                 logger.exception("file read error: %s", error)
 

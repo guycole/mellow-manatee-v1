@@ -56,7 +56,28 @@ schema = {
         "version":        {"type": "number"},
         "observations": {
             "type": "array",
-            "items": {"type": "object"}
+            "items": {
+                "type": "object",
+                "properties": {
+                    "msg_type":  {"type": "number"},
+                    "repeat":    {"type": "number"},
+                    "mmsi":      {"type": "number"},
+                    "status":    {"type": ["number", "string"]},
+                    "turn":      {"type": ["number", "string"]},
+                    "speed":     {"type": "number"},
+                    "accuracy":  {"type": "boolean"},
+                    "lon":       {"type": "number"},
+                    "lat":       {"type": "number"},
+                    "course":    {"type": "number"},
+                    "heading":   {"type": "number"},
+                    "second":    {"type": "number"},
+                    "maneuver":  {"type": ["number", "string"]},
+                    "raim":      {"type": "boolean"},
+                    "radio":     {"type": "number"},
+                },
+                "required": ["msg_type", "repeat", "mmsi"],
+                "additionalProperties": True
+            }
         },
     },
     "required": ["equipment", "geoLoc", "timeStamp", "crate", "fileName", "mode", "project", "sourceFileName", "version", "observations"],

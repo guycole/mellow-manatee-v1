@@ -39,16 +39,6 @@ schema = {
             "required": ["altitude", "latitude", "longitude", "siteName"],
             "additionalProperties": False
         },
-        "job": {
-            "type": "object",
-            "properties": {
-                "mode":    {"type": "string"},
-                "project": {"type": "string"},
-                "task":    {"type": "string"},
-            },
-            "required": ["mode", "project", "task"],
-            "additionalProperties": False
-        },
         "timeStamp": {
             "type": "object",
             "properties": {
@@ -58,20 +48,18 @@ schema = {
             "required": ["epochSeconds", "iso8601"],
             "additionalProperties": False
         },
-        "crateName":    {"type": "string"},
-        "fileName":     {"type": "string"},
-        "version":      {"type": "number"},
-        "peakers": {
+        "crate":          {"type": "string"},
+        "fileName":       {"type": "string"},
+        "mode":           {"type": "string"},
+        "project":        {"type": "string"},
+        "sourceFileName": {"type": "string"},
+        "version":        {"type": "number"},
+        "observations": {
             "type": "array",
-            "items": {
-                "type": "array",
-                "items": {"type": "number"},
-                "minItems": 3,
-                "maxItems": 3
-            }
+            "items": {"type": "object"}
         },
     },
-    "required": ["equipment", "geoLoc", "job", "timeStamp", "crateName", "fileName", "version", "peakers"],
+    "required": ["equipment", "geoLoc", "timeStamp", "crate", "fileName", "mode", "project", "sourceFileName", "version", "observations"],
     "additionalProperties": False
 }
 

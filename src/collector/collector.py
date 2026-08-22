@@ -17,6 +17,8 @@ import zoneinfo
 import socket
 from collections import defaultdict
 
+from helper.json_helper import JsonHelper
+
 from pyais import decode
 
 import yaml
@@ -82,7 +84,7 @@ class Collector:
             "observations": observations,
         }
 
-        self.json_file_writer(outfile_json, results)
+        JsonHelper().json_file_writer(outfile_json, results)
 
     def base_file_name(self) -> str:
         datetime_str = datetime.datetime.now().strftime("%Y%m%d_%H")

@@ -46,20 +46,14 @@ class Collector:
         self.receiver_task = args["receiver"]["task"]
         self.receiver_type = args["receiver"]["type"]
 
-    def hourly_cleanup2(self) -> None:
-        print(f"collector execute: {self.receiver_task}")
-
-        base_file_name = str(uuid.uuid4())
-        print(f"base filename: {base_file_name}")
-
+    def write_manatee(self, observations: list[dict[str, any]], source_file_name: str) -> None:
         epoch_seconds = int(time.time())
         dt_object_utc = datetime.datetime.fromtimestamp(
             epoch_seconds, tz=zoneinfo.ZoneInfo("UTC")
         )
 
+        base_file_name = str(uuid.uuid4())
         outfile_json = f"{self.fresh_dir}/{base_file_name}.json"
-
-        observations = []
 
         results = {
             "equipment": {
@@ -83,6 +77,7 @@ class Collector:
             "fileName": f"{base_file_name}.json",
             "mode": self.receiver_mode,
             "project": self.receiver_task,
+            "sourceFileName": source_file_name,
             "version": 1,
             "observations": observations,
         }
@@ -152,7 +147,7 @@ class Collector:
         
         return fresh_flag
 
-    def read_observations(self, file_name: str):
+    def read_observations(self, file_name: str) -> list[dict[str, any]]:
         observations = []
 
         with open(file_name, "r") as decode_file:
@@ -182,8 +177,9 @@ class Collector:
                         fresh_target = f"{self.fresh_dir}/{target}"
 #                        os.rename(target, fresh_target)
                     elif target.endswith(".json"):
-                        xxxx = self.read_observations(target)
-                        print(type(xxxx))
+                        obs = self.read_observations(target)
+                        self.write_manatee(obs, target)
+                      
 #                        fresh_target = f"{self.fresh_dir}/{target}"
 #                        os.rename(target, fresh_target)
 

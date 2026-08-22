@@ -199,8 +199,8 @@ class Collector:
                 fresh_flag = self.write_raw_file(bfn, data)
                 self.write_decode_file(bfn, data)
 
-#                if fresh_flag:
-                self.hourly_cleanup()
+                if fresh_flag:
+                    self.hourly_cleanup()
 
 #
 # argv[1] = configuration filename

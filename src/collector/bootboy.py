@@ -13,6 +13,26 @@ from yaml.loader import SafeLoader
 
 class BootBoy:
 
+    def run_systemctl(self, action: str, service_name: str) -> tuple[int, str]:
+        import subprocess
+        # Use --no-block for start so systemd queues the job and returns
+        # immediately, preventing a deadlock when bootboy itself runs under systemd.
+        cmd = ["systemctl", "--no-block", action, service_name] if action == "start" else ["systemctl", action, service_name]
+        proc = subprocess.run(cmd, capture_output=True, text=True)
+        stderr = proc.stderr.strip()
+        return proc.returncode, stderr
+
+    def verify_service_active(self, service_name: str) -> None:
+        import time
+        # --no-block returns immediately; give systemd a moment to actually
+        # start (or fail to start) the service before checking.
+        time.sleep(2)
+        returncode, _ = self.run_systemctl("is-active", service_name)
+        if returncode == 0:
+            print(f"{service_name} is active.")
+        else:
+            print(f"{service_name} is NOT active after start — check: journalctl -u {service_name}")
+
     def configuration(self, target: str) -> dict[str, any]:
         print(f"BootBoy: configuring {target}")
 
@@ -35,13 +55,14 @@ class BootBoy:
 
         yaml_config = {
             "crateName": crate_name,
+            "dumpDir": "/tmp",
             "equipment": {
                 "hostName": host_name,
                 "hostType": host_type,
             },
             "receiver": {
                 "antenna": receiver.get("antenna", "xxx"),
-                "mode": "default",
+                "mode": "rtl_ais",
                 "receiverId": receiver.get("id", "xxx"),
                 "task": receiver.get("task", "xxx"),
                 "type": receiver.get("type", "xxx"),
@@ -63,11 +84,33 @@ class BootBoy:
             "receiver_task": receiver.get("task", "xxx"),
         }
 
+    def manage_rtl_ais(self) -> None:
+        # Only start — never enable. rtl_ais must not auto-start at boot;
+        # bootboy.py is the sole entry point that starts this service.
+        print("starting rtl_ais service")
+        returncode, stderr = self.run_systemctl("start", "rtl_ais.service")
+        if returncode == 0:
+            print("rtl_ais.service start queued.")
+            self.verify_service_active("rtl_ais.service")
+        else:
+            print(f"failed to start rtl_ais.service: {stderr}")
+
+    def manage_rtl_ais_listener(self) -> None:
+        # Only start — never enable. rtl_ais_listener must not auto-start at boot;
+        # bootboy.py is the sole entry point that starts this service.
+        print("starting rtl_ais_listener service")
+        returncode, stderr = self.run_systemctl("start", "rtl_ais_listener.service")
+        if returncode == 0:
+            print("rtl_ais_listener.service start queued.")
+            self.verify_service_active("rtl_ais_listener.service")
+        else:
+            print(f"failed to start rtl_ais_listener.service: {stderr}")
+
     def crontab(self) -> None:
         import subprocess
 
         crontab_entry = (
-            "*/10 * * * * $HOME/github/mellow-manatee-v1/bin/collector.sh > /dev/null 2>&1"
+            "07 13 * * * $HOME/github/mellow-manatee-v1/bin/collector.sh > /dev/null 2>&1"
         )
 
         # Always overwrite — collector is dedicated to this workload and must have
@@ -78,16 +121,18 @@ class BootBoy:
                 ["crontab", "-u", "wombat", "-"], input=new_crontab, text=True
             )
             if proc.returncode == 0:
-                print("Crontab updated for wombat.")
+                print("crontab updated for wombat.")
             else:
-                print("Failed to update wombat's crontab.")
+                print("failed to update wombat's crontab.")
         except Exception as e:
-            print(f"Error updating wombat's crontab: {e}")
+            print(f"error updating wombat's crontab: {e}")
 
     def execute(self, target: str) -> None:
-        config = self.configuration(target)
-        self.crontab()
+        self.configuration(target)
 
+        self.crontab()
+        self.manage_rtl_ais()
+        self.manage_rtl_ais_listener()
 
 #
 #

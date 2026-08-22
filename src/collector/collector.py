@@ -1,6 +1,6 @@
 #
 # Title: collector.py
-# Description:
+# Description: discover completed observation files and write collection report
 # Development Environment: Ubuntu 22.04.5 LTS/python 3.10.12
 # Author: G.S. Cole (guycole at gmail dot com)
 #
@@ -14,18 +14,13 @@ import time
 import uuid
 import zoneinfo
 
-import socket
-from collections import defaultdict
-
 from helper.json_helper import JsonHelper
-
-from pyais import decode
 
 import yaml
 from yaml.loader import SafeLoader
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-logger = logging.getLogger("manatee")
+logger = logging.getLogger("collector")
 
 class Collector:
 
@@ -91,64 +86,6 @@ class Collector:
         file_name = f"{self.dump_dir}/manatee_{self.host_name}_{datetime_str}"
         return file_name
 
-    def write_raw_file(self, base_file_name: str, data: bytes) -> bool:
-        raw_file_name = f"{base_file_name}.raw"
-    
-        if os.path.exists(raw_file_name):
-            fresh_flag = False
-            out_file = open(raw_file_name, "ab")
-        else:
-            fresh_flag = True
-            out_file = open(raw_file_name, "wb")
-
-        out_file.write(data)
-        out_file.flush()
-        out_file.close()
-
-        return fresh_flag
-
-    def write_decode_file(self, base_file_name: str, data: bytes) -> bool:
-        parts_buffer = {}
-        decoded_messages = []
-        for sentence in data.decode("utf-8", errors="replace").splitlines():
-            sentence = sentence.strip()
-            if not sentence:
-                continue
-
-            try:
-                fields = sentence.split(",")
-                total_parts = int(fields[1])
-                seq_id = fields[3]
-                if total_parts == 1:
-                    message = decode(sentence).asdict()
-                    print(message, flush=True)
-                    decoded_messages.append(message)
-                else:
-                    if seq_id not in parts_buffer:
-                        parts_buffer[seq_id] = []
-                    parts_buffer[seq_id].append(sentence)
-                    if len(parts_buffer[seq_id]) == total_parts:
-                        message = decode(*parts_buffer.pop(seq_id)).asdict()
-                        print(message, flush=True)
-                        decoded_messages.append(message)
-            except Exception as error:
-                logger.warning("decode error: %s", error)
-
-        raw_file_name = f"{base_file_name}.json"
-        if os.path.exists(raw_file_name):
-            fresh_flag = False
-            out_file = open(raw_file_name, "ab")
-        else:
-            fresh_flag = True
-            out_file = open(raw_file_name, "wb")
-        
-        out_file.write(json.dumps(decoded_messages, default=str).encode("utf-8"))
-        out_file.write(b"\n")
-        out_file.flush()
-        out_file.close()
-        
-        return fresh_flag
-
     def read_observations(self, file_name: str) -> list[dict[str, any]]:
         observations = []
 
@@ -163,7 +100,7 @@ class Collector:
 
         return observations
 
-    def hourly_cleanup(self) -> None:
+    def execute(self) -> None:
         bfn = os.path.basename(self.base_file_name())
 
         os.chdir(self.dump_dir)
@@ -186,25 +123,6 @@ class Collector:
                         fresh_target = f"{self.fresh_dir}/{target}"
                         logger.info(f"moving {target} to {fresh_target}")
                         os.rename(target, fresh_target)
-
-    def execute(self) -> None:
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
-            sock.bind(("127.0.0.1", 10110))
-            logger.info("listening on UDP 127.0.0.1:10110")
-
-            while True:
-                data, _ = sock.recvfrom(4096)
-                print(f"received {len(data)} bytes", flush=True)
-                print(data)
-
-                bfn = self.base_file_name()
-
-                fresh_flag = self.write_raw_file(bfn, data)
-                self.write_decode_file(bfn, data)
-
-                if fresh_flag:
-                    logger.info(f"fresh flag true for {bfn}")
-                    self.hourly_cleanup()
 
 #
 # argv[1] = configuration filename

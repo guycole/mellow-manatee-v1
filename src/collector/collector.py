@@ -92,10 +92,9 @@ class Collector:
 
         self.json_file_writer(outfile_json, results)
 
-#acars_20260821_19.json
     def base_file_name(self) -> str:
         datetime_str = datetime.datetime.now().strftime("%Y%m%d_%H")
-        file_name = f"{self.dump_dir}/manatee_{datetime_str}"
+        file_name = f"{self.dump_dir}/manatee_{self.host_name}_{datetime_str}"
         return file_name
 
     def write_raw_file(self, base_file_name: str, data: bytes) -> bool:
@@ -114,8 +113,31 @@ class Collector:
 
         return fresh_flag
 
-    def write_decode_file(self, base_file_name: str, data: bytes) -> None:
-        pass
+    def write_decode_file(self, base_file_name: str, data: bytes) -> bool:
+        raw_file_name = f"{base_file_name}.json"
+
+        parts_buffer = {}
+        for sentence in data.decode("utf-8", errors="replace").splitlines():
+            sentence = sentence.strip()
+            if not sentence:
+                continue
+
+            try:
+                fields = sentence.split(",")
+                total_parts = int(fields[1])
+                seq_id = fields[3]
+                if total_parts == 1:
+                    print(decode(sentence).asdict(), flush=True)
+                else:
+                    if seq_id not in parts_buffer:
+                        parts_buffer[seq_id] = []
+                    parts_buffer[seq_id].append(sentence)
+                    if len(parts_buffer[seq_id]) == total_parts:
+                        print(decode(*parts_buffer.pop(seq_id)).asdict(), flush=True)
+            except Exception as error:
+                logger.warning("decode error: %s", error)
+
+        print(parts_buffer)
 
     def execute(self) -> None:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
@@ -129,25 +151,8 @@ class Collector:
 
                 bfn = self.base_file_name()
 
-                self.write_raw_file(bfn, data)
+                fresh_flag = self.write_raw_file(bfn, data)
                 self.write_decode_file(bfn, data)
-
-#                for sentence in data.decode("utf-8", errors="replace").splitlines():
-#                    sentence = sentence.strip()
-#                    if not sentence:
-#                        continue
-#                    try:
-#                        fields = sentence.split(",")
-#                        total_parts = int(fields[1])
-#                        seq_id = fields[3]
-#                        if total_parts == 1:
-#                            print(decode(sentence).asdict(), flush=True)
-#                        else:
-#                            parts_buffer[seq_id].append(sentence)
-#                            if len(parts_buffer[seq_id]) == total_parts:
-#                                print(decode(*parts_buffer.pop(seq_id)).asdict(), flush=True)
-#                    except Exception as error:
-#                        logger.warning("decode error: %s", error)
 
 #
 # argv[1] = configuration filename

@@ -24,10 +24,10 @@ from yaml.loader import SafeLoader
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("manatee")
 
-
 class Collector:
 
     def __init__(self, args: dict[str, any]):
+        self.dump_dir = args["dumpDir"]
         self.crate_name = args["crateName"]
         self.fresh_dir = args["freshDir"]
 
@@ -45,12 +45,8 @@ class Collector:
         self.receiver_task = args["receiver"]["task"]
         self.receiver_type = args["receiver"]["type"]
 
-    def json_file_writer(self, file_name: str, json_data: dict[str, any]) -> None:
-        try:
-            with open(file_name, "w") as out_file:
-                json.dump(json_data, out_file, indent=4)
-        except Exception as error:
-            print(error)
+    def block_for_ais_messages(self, sock: socket.socket) -> bytes:
+        pass
 
     def execute2(self) -> None:
         print(f"collector execute: {self.receiver_task}")
@@ -95,34 +91,52 @@ class Collector:
 
         self.json_file_writer(outfile_json, results)
 
+#acars_20260821_19.json
+    def raw_file_name(self) -> str:
+        datetime_str = datetime.datetime.now().strftime("%Y%m%d_%H")
+        print(f"raw file name: {self.dump_dir}/{datetime_str}_{base_file_name}.raw")
+        return f"{self.dump_dir}/{datetime_str}_{base_file_name}.raw"
+
+    def write_raw_file(self, data: bytes) -> None:
+        print(data)
+        raw_file_name = self.raw_file_name()
+
+    def write_decode_file(self, data: bytes) -> None:
+        pass
 
     def execute(self) -> None:
-        parts_buffer = defaultdict(list)
-
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             sock.bind(("127.0.0.1", 10110))
             logger.info("listening on UDP 127.0.0.1:10110")
+
             while True:
                 data, _ = sock.recvfrom(4096)
-                for sentence in data.decode("utf-8", errors="replace").splitlines():
-                    sentence = sentence.strip()
-                    if not sentence:
-                        continue
-                    try:
-                        fields = sentence.split(",")
-                        total_parts = int(fields[1])
-                        seq_id = fields[3]
-                        if total_parts == 1:
-                            print(decode(sentence).asdict(), flush=True)
-                        else:
-                            parts_buffer[seq_id].append(sentence)
-                            if len(parts_buffer[seq_id]) == total_parts:
-                                print(decode(*parts_buffer.pop(seq_id)).asdict(), flush=True)
-                    except Exception as error:
-                        logger.warning("decode error: %s", error)
+                print(f"received {len(data)} bytes", flush=True)
+                print(data)
+
+                self.write_raw_file(data)
+                self.write_decode_file(data)
+
+#                for sentence in data.decode("utf-8", errors="replace").splitlines():
+#                    sentence = sentence.strip()
+#                    if not sentence:
+#                        continue
+#                    try:
+#                        fields = sentence.split(",")
+#                        total_parts = int(fields[1])
+#                        seq_id = fields[3]
+#                        if total_parts == 1:
+#                            print(decode(sentence).asdict(), flush=True)
+#                        else:
+#                            parts_buffer[seq_id].append(sentence)
+#                            if len(parts_buffer[seq_id]) == total_parts:
+#                                print(decode(*parts_buffer.pop(seq_id)).asdict(), flush=True)
+#                    except Exception as error:
+#                        logger.warning("decode error: %s", error)
 
 #
 # argv[1] = configuration filename
+# nc -u -l 10110 for test
 #
 if __name__ == "__main__":
     if len(sys.argv) > 1:

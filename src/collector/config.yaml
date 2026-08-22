@@ -1,9 +1,9 @@
 crateName: wombat04
-dump978Filename: /tmp/aircraft.json
+dumpDir: /tmp
 equipment:
   hostName: c4i
   hostType: odroid c4
-freshDir: /var/wombat/fresh/hyena
+freshDir: /var/wombat/fresh/manatee
 geoLoc:
   altitude: 0
   latitude: 38.108
@@ -11,7 +11,7 @@ geoLoc:
   siteName: vallejo01
 receiver:
   antenna: multicoupler
-  mode: dump978
+  mode: rtl_ais
   receiverId: 15
-  task: hyena-v2-dump978
+  task: manatee-v1-ra
   type: rtl-sdr-v4

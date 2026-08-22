@@ -115,6 +115,7 @@ class Collector:
 
     def write_decode_file(self, base_file_name: str, data: bytes) -> bool:
         parts_buffer = {}
+        decoded_messages = []
         for sentence in data.decode("utf-8", errors="replace").splitlines():
             sentence = sentence.strip()
             if not sentence:
@@ -125,13 +126,17 @@ class Collector:
                 total_parts = int(fields[1])
                 seq_id = fields[3]
                 if total_parts == 1:
-                    print(decode(sentence).asdict(), flush=True)
+                    message = decode(sentence).asdict()
+                    print(message, flush=True)
+                    decoded_messages.append(message)
                 else:
                     if seq_id not in parts_buffer:
                         parts_buffer[seq_id] = []
                     parts_buffer[seq_id].append(sentence)
                     if len(parts_buffer[seq_id]) == total_parts:
-                        print(decode(*parts_buffer.pop(seq_id)).asdict(), flush=True)
+                        message = decode(*parts_buffer.pop(seq_id)).asdict()
+                        print(message, flush=True)
+                        decoded_messages.append(message)
             except Exception as error:
                 logger.warning("decode error: %s", error)
 
@@ -143,7 +148,7 @@ class Collector:
             fresh_flag = True
             out_file = open(raw_file_name, "wb")
         
-        out_file.write(json.dumps(parts_buffer).encode("utf-8"))
+        out_file.write(json.dumps(decoded_messages, default=str).encode("utf-8"))
         out_file.flush()
         out_file.close()
         

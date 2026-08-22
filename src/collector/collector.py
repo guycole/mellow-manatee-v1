@@ -92,16 +92,20 @@ class Collector:
         self.json_file_writer(outfile_json, results)
 
 #acars_20260821_19.json
-    def raw_file_name(self) -> str:
+    def base_file_name(self) -> str:
         datetime_str = datetime.datetime.now().strftime("%Y%m%d_%H")
-        print(f"raw file name: {self.dump_dir}/{datetime_str}_{base_file_name}.raw")
-        return f"{self.dump_dir}/{datetime_str}_{base_file_name}.raw"
+        file_name = f"{self.dump_dir}/manatee_{datetime_str}"
+        return file_name
 
-    def write_raw_file(self, data: bytes) -> None:
+    def write_raw_file(self, base_file_name: str, data: bytes) -> None:
         print(data)
-        raw_file_name = self.raw_file_name()
 
-    def write_decode_file(self, data: bytes) -> None:
+        raw_file_name = f"{base_file_name}.raw"
+
+        with open(raw_file_name, "wb") as out_file:
+            out_file.write(data)
+
+    def write_decode_file(self, base_file_name: str, data: bytes) -> None:
         pass
 
     def execute(self) -> None:
@@ -114,8 +118,10 @@ class Collector:
                 print(f"received {len(data)} bytes", flush=True)
                 print(data)
 
-                self.write_raw_file(data)
-                self.write_decode_file(data)
+                bfn = self.base_file_name()
+
+                self.write_raw_file(bfn, data)
+                self.write_decode_file(bfn, data)
 
 #                for sentence in data.decode("utf-8", errors="replace").splitlines():
 #                    sentence = sentence.strip()

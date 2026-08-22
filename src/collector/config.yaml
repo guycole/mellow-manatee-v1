@@ -1,0 +1,17 @@
+crateName: wombat04
+dumpDir: /tmp
+equipment:
+  hostName: c4i
+  hostType: odroid c4
+freshDir: /var/wombat/fresh/manatee
+geoLoc:
+  altitude: 0
+  latitude: 38.108
+  longitude: -122.268
+  siteName: vallejo01
+receiver:
+  antenna: multicoupler
+  mode: rtl_ais
+  receiverId: 15
+  task: manatee-v1-ra
+  type: rtl-sdr-v4

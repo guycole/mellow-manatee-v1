@@ -1,0 +1,16 @@
+# /etc/systemd/system/rtl_ais.service
+# systemctl daemon-reload 
+
+[Unit]
+Description=rtl_ais
+After=multi-user.target
+
+[Service]
+User=root
+ExecStart=/usr/local/bin/rtl_ais
+StandardOutput=null
+StandardError=journal
+Restart=no
+
+# No [Install] section — rtl_ais is not auto-started at boot.
+# It is started on-demand by bootboy.py via 'systemctl start rtl_ais.service'.

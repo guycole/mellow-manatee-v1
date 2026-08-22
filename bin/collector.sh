@@ -6,14 +6,15 @@
 # Author: Guy Cole (guycole at gmail dot com)
 #
 PATH=/bin:/usr/bin:/etc:/usr/local/bin; export PATH
+PYTHONPATH="$HOME/github/mellow-manatee-v1/src"; export PYTHONPATH
 #
 hostname=$(hostname)
 logger -p local3.info "collector manatee $hostname"
 #
-WORK_DIR="/home/wombat/github/mellow-manatee-v1/src/collector"
+WORK_DIR="$HOME/github/mellow-manatee-v1/src/collector"
 #
 echo "start collector"
-sleep 13
+#sleep 13
 cd $WORK_DIR
 source venv/bin/activate
 python3 ./collector.py

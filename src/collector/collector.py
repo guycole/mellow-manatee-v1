@@ -164,24 +164,27 @@ class Collector:
         return observations
 
     def hourly_cleanup(self) -> None:
-        bfn = self.base_file_name()
+        bfn = os.path.basename(self.base_file_name())
 
         os.chdir(self.dump_dir)
         targets = sorted(os.listdir("."))
         logger.info(f"{len(targets)} files noted")
 
         for target in targets:
+            logger.info(f"checking {target}")
             if target.startswith("manatee"):
                 if target.startswith(bfn):
                     logger.info(f"skipping {target}")
                 else:
                     if target.endswith(".raw"):
                         fresh_target = f"{self.fresh_dir}/{target}"
+                        logger.info(f"moving {target} to {fresh_target}")
                         os.rename(target, fresh_target)
                     elif target.endswith(".json"):
                         obs = self.read_observations(target)
                         self.write_manatee(obs, target)                      
                         fresh_target = f"{self.fresh_dir}/{target}"
+                        logger.info(f"moving {target} to {fresh_target}")
                         os.rename(target, fresh_target)
 
     def execute(self) -> None:
@@ -200,6 +203,7 @@ class Collector:
                 self.write_decode_file(bfn, data)
 
                 if fresh_flag:
+                    logger.info(f"fresh flag true for {bfn}")
                     self.hourly_cleanup()
 
 #

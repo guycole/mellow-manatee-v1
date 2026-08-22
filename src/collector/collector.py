@@ -46,10 +46,7 @@ class Collector:
         self.receiver_task = args["receiver"]["task"]
         self.receiver_type = args["receiver"]["type"]
 
-    def block_for_ais_messages(self, sock: socket.socket) -> bytes:
-        pass
-
-    def execute2(self) -> None:
+    def hourly_cleanup2(self) -> None:
         print(f"collector execute: {self.receiver_task}")
 
         base_file_name = str(uuid.uuid4())
@@ -155,6 +152,41 @@ class Collector:
         
         return fresh_flag
 
+    def read_observations(self, file_name: str):
+        observations = []
+
+        with open(file_name, "r") as decode_file:
+            # must be read line by line because file is not valid json list
+            try:
+                buffer = decode_file.readlines()
+                for row in buffer:
+                    observations.append(json.loads(row))
+            except Exception as error:
+                logger.exception("file read error: %s", error)
+
+        return observations
+
+    def hourly_cleanup(self) -> None:
+        bfn = self.base_file_name()
+
+        os.chdir(self.dump_dir)
+        targets = sorted(os.listdir("."))
+        logger.info(f"{len(targets)} files noted")
+
+        for target in targets:
+            if target.startswith("manatee"):
+                if target.startswith(bfn):
+                    logger.info(f"skipping {target}")
+                else:
+                    if target.endswith(".raw"):
+                        fresh_target = f"{self.fresh_dir}/{target}"
+#                        os.rename(target, fresh_target)
+                    elif target.endswith(".json"):
+                        xxxx = self.read_observations(target)
+                        print(type(xxxx))
+#                        fresh_target = f"{self.fresh_dir}/{target}"
+#                        os.rename(target, fresh_target)
+
     def execute(self) -> None:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
             sock.bind(("127.0.0.1", 10110))
@@ -169,6 +201,9 @@ class Collector:
 
                 fresh_flag = self.write_raw_file(bfn, data)
                 self.write_decode_file(bfn, data)
+
+#                if fresh_flag:
+                self.hourly_cleanup()
 
 #
 # argv[1] = configuration filename

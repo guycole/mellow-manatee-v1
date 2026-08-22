@@ -149,6 +149,7 @@ class Collector:
             out_file = open(raw_file_name, "wb")
         
         out_file.write(json.dumps(decoded_messages, default=str).encode("utf-8"))
+        out_file.write(b"\n")
         out_file.flush()
         out_file.close()
         

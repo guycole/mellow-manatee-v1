@@ -8,6 +8,7 @@
 import datetime
 import json
 import logging
+import os
 import sys
 import time
 import uuid
@@ -97,13 +98,21 @@ class Collector:
         file_name = f"{self.dump_dir}/manatee_{datetime_str}"
         return file_name
 
-    def write_raw_file(self, base_file_name: str, data: bytes) -> None:
-        print(data)
-
+    def write_raw_file(self, base_file_name: str, data: bytes) -> bool:
         raw_file_name = f"{base_file_name}.raw"
+    
+        if os.path.exists(raw_file_name):
+            fresh_flag = False
+            out_file = open(raw_file_name, "ab")
+        else:
+            fresh_flag = True
+            out_file = open(raw_file_name, "wb")
 
-        with open(raw_file_name, "wb") as out_file:
-            out_file.write(data)
+        out_file.write(data)
+        out_file.flush()
+        out_file.close()
+
+        return fresh_flag
 
     def write_decode_file(self, base_file_name: str, data: bytes) -> None:
         pass

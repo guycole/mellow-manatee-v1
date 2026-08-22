@@ -114,8 +114,6 @@ class Collector:
         return fresh_flag
 
     def write_decode_file(self, base_file_name: str, data: bytes) -> bool:
-        raw_file_name = f"{base_file_name}.json"
-
         parts_buffer = {}
         for sentence in data.decode("utf-8", errors="replace").splitlines():
             sentence = sentence.strip()
@@ -137,7 +135,19 @@ class Collector:
             except Exception as error:
                 logger.warning("decode error: %s", error)
 
-        print(parts_buffer)
+        raw_file_name = f"{base_file_name}.json"
+        if os.path.exists(raw_file_name):
+            fresh_flag = False
+            out_file = open(raw_file_name, "ab")
+        else:
+            fresh_flag = True
+            out_file = open(raw_file_name, "wb")
+        
+        out_file.write(json.dumps(parts_buffer).encode("utf-8"))
+        out_file.flush()
+        out_file.close()
+        
+        return fresh_flag
 
     def execute(self) -> None:
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:

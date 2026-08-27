@@ -96,8 +96,6 @@ class Collector:
                 for raw_row in buffer:
                     json_row = json.loads(raw_row)
                     for json_element in json_row:
-                        if "uuid" not in json_element:
-                            json_element["uuid"] = str(uuid.uuid4())
                         observations.append(json_element)            
             except Exception as error:
                 logger.exception("file read error: %s", error)

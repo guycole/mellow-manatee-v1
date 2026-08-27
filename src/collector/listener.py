@@ -1,6 +1,6 @@
 #
 # Title: listener.py
-# Description: listen for AIS data on UDP port 10110 and write to files
+# Description: listen for AIS data on UDP port 10110 and write two files
 # Development Environment: Ubuntu 22.04.5 LTS/python 3.10.12
 # Author: G.S. Cole (guycole at gmail dot com)
 #
@@ -102,6 +102,12 @@ class Listener:
         else:
             fresh_flag = True
             out_file = open(raw_file_name, "wb")
+
+        epoch_seconds = int(time.time())
+
+        for message in decoded_messages:
+            message["epochSeconds"] = epoch_seconds
+            message["uuid"] = str(uuid.uuid4())
         
         out_file.write(json.dumps(decoded_messages, default=str).encode("utf-8"))
         out_file.write(b"\n")

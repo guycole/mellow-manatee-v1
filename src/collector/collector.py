@@ -93,8 +93,12 @@ class Collector:
             # must be read line by line because file is not valid json list
             try:
                 buffer = decode_file.readlines()
-                for row in buffer:
-                    observations.extend(json.loads(row))
+                for raw_row in buffer:
+                    json_row = json.loads(raw_row)
+                    for json_element in json_row:
+                        if "uuid" not in json_element:
+                            json_element["uuid"] = str(uuid.uuid4())
+                        observations.append(json_element)            
             except Exception as error:
                 logger.exception("file read error: %s", error)
 
@@ -120,9 +124,9 @@ class Collector:
                     elif target.endswith(".json"):
                         obs = self.read_observations(target)
                         self.write_manatee(obs, target)                      
-                        fresh_target = f"{self.fresh_dir}/{target}"
-                        logger.info(f"moving {target} to {fresh_target}")
-                        os.rename(target, fresh_target)
+#                        fresh_target = f"{self.fresh_dir}/{target}"
+#                        logger.info(f"moving {target} to {fresh_target}")
+#                        os.rename(target, fresh_target)
 
 #
 # argv[1] = configuration filename

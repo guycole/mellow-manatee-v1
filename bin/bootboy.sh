@@ -5,6 +5,8 @@
 # Development Environment: Ubuntu 22.04.05 LTS
 # Author: Guy Cole (guycole at gmail dot com)
 #
+set -e
+#
 PATH=/bin:/usr/bin:/etc:/usr/local/bin; export PATH
 #
 hostname=$(hostname)

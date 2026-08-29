@@ -88,49 +88,43 @@ class Validator:
                 return False               
         except Exception as error:
             logger.error(f"postgres insert failed for {test_file_name}: {error}")        
-
+        
         return False
 
-    def file_processor(self, file_name1: str, file_name2: str) -> None:
-        logger.info(f"processing files: {file_name1} {file_name2}")
+    def file_processor(self, file_name: str) -> None:
+        logger.info(f"processing files: {file_name}")
 
-        if os.path.isfile(file_name1) is False:
-            logger.warning(f"skipping non-file:{file_name1}")
-            self.file_failure2(file_name1, file_name2)
+        if os.path.isfile(file_name) is False:
+            logger.warning(f"skipping non-file:{file_name}")
+            self.file_failure(file_name)
             return
 
-        if os.path.isfile(file_name2) is False:
-            logger.warning(f"skipping non-file:{file_name2}")
-            self.file_failure2(file_name1, file_name2)
+        if not self.jh.json_file_reader(file_name, True):
+            logger.warning(f"file read failed for {file_name}")
+            self.file_failure(file_name)
             return
 
-        if os.path.getsize(file_name1) < 1 or os.path.getsize(file_name2) < 1:
-            logger.warning(f"skipping empty file(s):{file_name1} {file_name2}")
-            self.file_failure2(file_name1, file_name2)
+        if os.path.getsize(file_name) < 1:
+            logger.warning(f"skipping empty file:{file_name}")
+            self.file_failure(file_name)
             return
 
-        test_file_name = file_name1 if file_name1.endswith(".json") else file_name2
-        if not self.jh.json_file_reader(test_file_name, True):
-            logger.warning(f"file read failed for {test_file_name}")
-            self.file_failure2(file_name1, file_name2)
+        if self.jh.raw_json["fileName"] != file_name:
+            logger.warning(f"mismatched file name: {self.jh.raw_json['fileName']} vs {file_name}")
+            self.file_failure(file_name)
             return
 
-        if self.jh.raw_json["fileName"] != test_file_name:
-            logger.warning(f"mismatched file name: {self.jh.raw_json['fileName']} vs {test_file_name}")
-            self.file_failure2(file_name1, file_name2)
-            return
-
-        if self.jh.raw_json["version"] == 1 and self.jh.raw_json["job"]["project"].startswith("manatee-v1"):
+        if (self.jh.raw_json["version"] == 1 and self.jh.raw_json["job"]["project"] == "manatee-v1"):
             pass
         else:
-            logger.warning(f"invalid version or project for {test_file_name} {self.jh.raw_json['job']['project']}")
-            self.file_failure2(file_name1, file_name2)
+            logger.warning(f"invalid version or project for {file_name}")
+            self.file_failure(file_name)
             return
 
-        if self.load_log_test(test_file_name):
-            self.file_success2(file_name1, file_name2)
+        if self.load_log_test(file_name):
+            self.file_success(file_name)
         else:
-            self.file_failure2(file_name1, file_name2)
+            self.file_failure(file_name)
 
     def execute(self) -> None:
         logger.info(f"validator fresh dir:{self.fresh_dir}")
@@ -139,20 +133,15 @@ class Validator:
         targets = sorted(os.listdir("."))
         logger.info(f"{len(targets)} files noted")
 
-        ndx1 = 0
-        while ndx1 < len(targets)-1:
-            # valid files will arrive in pairs
-            target1 = targets[ndx1]
-            target2 = targets[ndx1+1]
+        for target in targets:
+            if target.startswith("manatee"):
+                logger.info(f"skipping raw:{target}")
+                self.file_success(target)    
+                continue
 
-            temp = target1.split(".")
-            if target2.startswith(temp[0]):
-                self.file_processor(target1, target2)
-                ndx1 += 1
-            else:
-                logger.info(f"skipping fail name match {target1} {target2}")
+            self.file_processor(target)
 
-            ndx1 += 1
+        logger.info(f"validator success:{self.success} failure:{self.failure}")
 
 # ;;; Local Variables: ***
 # ;;; mode:python ***

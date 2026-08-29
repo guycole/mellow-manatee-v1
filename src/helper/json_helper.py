@@ -48,10 +48,18 @@ schema = {
             "required": ["epochSeconds", "iso8601"],
             "additionalProperties": False
         },
+        "job": {
+            "type": "object",
+            "properties": {
+                "mode":    {"type": "string"},
+                "project": {"type": "string"},
+                "task":    {"type": "string"},
+            },
+            "required": ["mode", "project", "task"],
+            "additionalProperties": False
+        },
         "crate":          {"type": "string"},
         "fileName":       {"type": "string"},
-        "mode":           {"type": "string"},
-        "project":        {"type": "string"},
         "sourceFileName": {"type": "string"},
         "version":        {"type": "number"},
         "observations": {
@@ -59,7 +67,7 @@ schema = {
             "items": {}
         },
     },
-    "required": ["equipment", "geoLoc", "timeStamp", "crate", "fileName", "mode", "project", "sourceFileName", "version", "observations"],
+    "required": ["equipment", "geoLoc", "timeStamp", "job", "crate", "fileName", "sourceFileName", "version", "observations"],
     "additionalProperties": False
 }
 

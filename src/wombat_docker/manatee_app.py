@@ -21,12 +21,8 @@ class ManateeApp:
     def __init__(self, stunt_box: str):
         self.stunt_box = stunt_box
 
-        # wombat docker
-        self.db_conn = "postgresql+psycopg2://manatee_client:batabat@172.17.0.1:5432/manatee"
-
-        # mac development
-        # self.db_conn = "postgresql+psycopg2://manatee_client:batabat@localhost:5432/manatee"
-
+        self.db_conn = os.environ.get("DB_CONN", "postgresql+psycopg2://manatee_client:batabat@localhost:5432/manatee")
+ 
         db_engine = create_engine(self.db_conn, echo=False)
         self.postgres = PostGres(sessionmaker(bind=db_engine, expire_on_commit=False))
 

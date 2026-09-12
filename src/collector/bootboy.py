@@ -55,7 +55,7 @@ class BootBoy:
 
         yaml_config = {
             "crateName": crate_name,
-            "dumpDir": "/tmp",
+            "rawDir": "/tmp",
             "equipment": {
                 "hostName": host_name,
                 "hostType": host_type,

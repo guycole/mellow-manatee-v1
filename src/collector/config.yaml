@@ -1,5 +1,5 @@
 crateName: wombat04
-dumpDir: /tmp
+rawDir: /tmp
 equipment:
   hostName: c4i
   hostType: odroid c4

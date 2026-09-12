@@ -25,9 +25,9 @@ logger = logging.getLogger("collector")
 class Collector:
 
     def __init__(self, args: dict[str, any]):
-        self.dump_dir = args["dumpDir"]
         self.crate_name = args["crateName"]
         self.fresh_dir = args["freshDir"]
+        self.raw_dir = args["rawDir"]
 
         self.host_name = args["equipment"]["hostName"]
         self.host_type = args["equipment"]["hostType"]
@@ -51,6 +51,7 @@ class Collector:
 
         base_file_name = str(uuid.uuid4())
         outfile_json = f"{self.fresh_dir}/{base_file_name}.json"
+        logger.info(f"writing manatee file: {outfile_json}")
 
         results = {
             "equipment": {
@@ -66,14 +67,17 @@ class Collector:
                 "longitude": self.longitude,
                 "siteName": self.site_name,
             },
+             "job": {
+                "mode": self.receiver_mode,
+                "project": "manatee-v1",
+                "task": self.receiver_task,
+            },
             "timeStamp": {
                 "epochSeconds": epoch_seconds,
                 "iso8601": dt_object_utc.isoformat(),
             },
             "crate": self.crate_name,
             "fileName": f"{base_file_name}.json",
-            "mode": self.receiver_mode,
-            "project": self.receiver_task,
             "sourceFileName": source_file_name,
             "version": 1,
             "observations": observations,
@@ -83,10 +87,12 @@ class Collector:
 
     def base_file_name(self) -> str:
         datetime_str = datetime.datetime.now().strftime("%Y%m%d_%H")
-        file_name = f"{self.dump_dir}/manatee_{self.host_name}_{datetime_str}"
+        file_name = f"{self.raw_dir}/manatee_{self.host_name}_{datetime_str}"
         return file_name
 
     def read_observations(self, file_name: str) -> list[dict[str, any]]:
+        logger.info(f"reading observations from file: {file_name}")
+
         observations = []
 
         with open(file_name, "r") as decode_file:
@@ -105,7 +111,7 @@ class Collector:
     def execute(self) -> None:
         bfn = os.path.basename(self.base_file_name())
 
-        os.chdir(self.dump_dir)
+        os.chdir(self.raw_dir)
         targets = sorted(os.listdir("."))
         logger.info(f"{len(targets)} files noted")
 
@@ -115,16 +121,16 @@ class Collector:
                 if target.startswith(bfn):
                     logger.info(f"skipping {target}")
                 else:
+                    fresh_target = f"{self.fresh_dir}/{target}"
+
                     if target.endswith(".raw"):
-                        fresh_target = f"{self.fresh_dir}/{target}"
-                        logger.info(f"moving {target} to {fresh_target}")
-                        os.rename(target, fresh_target)
+                        pass
                     elif target.endswith(".json"):
                         obs = self.read_observations(target)
-                        self.write_manatee(obs, target)                      
-#                        fresh_target = f"{self.fresh_dir}/{target}"
-#                        logger.info(f"moving {target} to {fresh_target}")
-#                        os.rename(target, fresh_target)
+                        self.write_manatee(obs, target)
+
+                    logger.info(f"moving {target} to {fresh_target}")
+                    os.rename(target, fresh_target)
 
 #
 # argv[1] = configuration filename

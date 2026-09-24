@@ -10,37 +10,52 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from validator import Validator
-from postgres import PostGres
+from helper.postgres import PostGres
+from validator import ManateeValidator
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("manatee")
 
-class ManateeApp:
 
+class ManateeApp:
     def __init__(self, stunt_box: str):
         self.stunt_box = stunt_box
 
-        self.db_conn = os.environ.get("DB_CONN", "postgresql+psycopg2://manatee_client:batabat@localhost:5432/manatee")
- 
-        db_engine = create_engine(self.db_conn, echo=False)
+        self.db_conn = os.environ.get(
+            "DB_CONN",
+            "postgresql+psycopg2://manatee_client:batabat@localhost:5432/manatee",
+        )
+
+        connect_timeout = int(os.environ.get("PG_CONNECT_TIMEOUT", "5"))
+        statement_timeout_ms = int(os.environ.get("PG_STATEMENT_TIMEOUT_MS", "5000"))
+
+        db_engine = create_engine(
+            self.db_conn,
+            echo=False,
+            pool_pre_ping=True,
+            connect_args={
+                "connect_timeout": connect_timeout,
+                "options": f"-c statement_timeout={statement_timeout_ms}",
+            },
+        )
         self.postgres = PostGres(sessionmaker(bind=db_engine, expire_on_commit=False))
 
-    def execute(self) -> None:
-        logger.info(f"manatee execute:{self.stunt_box}")
+    def execute(self) -> int:
+        logger.info("manatee execute: %s", self.stunt_box)
 
         if self.stunt_box == "validator":
-            validator = Validator(self.postgres)
-            validator.execute()
-        else:
-            logger.error(f"invalid stunt_box option:{self.stunt_box}")
-            return
+            validator = ManateeValidator(logger, self.postgres)
+            return validator.execute()
+
+        logger.error("invalid stunt_box option: %s", self.stunt_box)
+        return 1
+
 
 if __name__ == "__main__":
     stunt_box = os.environ.get("stuntbox", "validator")
 
     app = ManateeApp(stunt_box)
-    app.execute()
+    exit(app.execute())
 
 # ;;; Local Variables: ***
 # ;;; mode:python ***

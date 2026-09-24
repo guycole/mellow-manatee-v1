@@ -1,0 +1,7 @@
+[project]
+name = "wombat-docker"
+version = "0.0.0"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+python_files = ["test_*.py"]

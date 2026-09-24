@@ -38,7 +38,7 @@ RUN printf '%s\n' '#!/bin/sh' 'set -eu' 'uid="${WOMBAT_UID:?WOMBAT_UID is requir
 
 ENV FAILURE_DIR=/mnt/wombat/failure
 ENV FRESH_DIR=/mnt/wombat/fresh/manatee
-ENV SUCCESS_DIR=/mnt/wombat/success/manatee
+ENV SUCCESS_DIR=/mnt/wombat/manatee/success
 
 ENV DB_CONN=postgresql+psycopg2://manatee_client:batabat@172.17.0.1:5432/manatee
 

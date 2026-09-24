@@ -7,23 +7,29 @@
 import json
 import socket
 import sys
+from typing import Any
 
 import yaml
-from yaml.loader import SafeLoader
+
 
 class BootBoy:
-
     def run_systemctl(self, action: str, service_name: str) -> tuple[int, str]:
         import subprocess
+
         # Use --no-block for start so systemd queues the job and returns
         # immediately, preventing a deadlock when bootboy itself runs under systemd.
-        cmd = ["systemctl", "--no-block", action, service_name] if action == "start" else ["systemctl", action, service_name]
+        if action == "start":
+            cmd = ["systemctl", "--no-block", action, service_name]
+        else:
+            cmd = ["systemctl", action, service_name]
+
         proc = subprocess.run(cmd, capture_output=True, text=True)
         stderr = proc.stderr.strip()
         return proc.returncode, stderr
 
     def verify_service_active(self, service_name: str) -> None:
         import time
+
         # --no-block returns immediately; give systemd a moment to actually
         # start (or fail to start) the service before checking.
         time.sleep(2)
@@ -31,19 +37,22 @@ class BootBoy:
         if returncode == 0:
             print(f"{service_name} is active.")
         else:
-            print(f"{service_name} is NOT active after start — check: journalctl -u {service_name}")
+            print(
+                f"{service_name} is NOT active after start; "
+                f"check: journalctl -u {service_name}"
+            )
 
-    def configuration(self, target: str) -> dict[str, any]:
+    def configuration(self, target: str) -> dict[str, Any]:
         print(f"BootBoy: configuring {target}")
 
         # Build the path to the admin JSON file
         admin_json_path = f"/var/wombat/admin/{target}.json"
 
         try:
-            with open(admin_json_path, "r") as f:
-                config_data = json.load(f)
-        except Exception as e:
-            print(f"Error reading {admin_json_path}: {e}")
+            with open(admin_json_path, "r", encoding="utf-8") as in_file:
+                config_data = json.load(in_file)
+        except Exception as error:
+            print(f"Error reading {admin_json_path}: {error}")
             sys.exit(1)
 
         # Compose new config dict for YAML output
@@ -73,11 +82,11 @@ class BootBoy:
 
         # Write to config.yaml in the current directory
         try:
-            with open("config.yaml", "w") as f:
-                yaml.dump(yaml_config, f, default_flow_style=False)
+            with open("config.yaml", "w", encoding="utf-8") as out_file:
+                yaml.dump(yaml_config, out_file, default_flow_style=False)
             print("config.yaml generated successfully.")
-        except Exception as e:
-            print(f"Error writing config.yaml: {e}")
+        except Exception as error:
+            print(f"Error writing config.yaml: {error}")
             sys.exit(1)
 
         return {
@@ -85,7 +94,7 @@ class BootBoy:
         }
 
     def manage_rtl_ais(self) -> None:
-        # Only start — never enable. rtl_ais must not auto-start at boot;
+        # Only start; never enable. rtl_ais must not auto-start at boot;
         # bootboy.py is the sole entry point that starts this service.
         print("starting rtl_ais service")
         returncode, stderr = self.run_systemctl("start", "rtl_ais.service")
@@ -96,7 +105,7 @@ class BootBoy:
             print(f"failed to start rtl_ais.service: {stderr}")
 
     def manage_rtl_ais_listener(self) -> None:
-        # Only start — never enable. rtl_ais_listener must not auto-start at boot;
+        # Only start; never enable. rtl_ais_listener must not auto-start at boot;
         # bootboy.py is the sole entry point that starts this service.
         print("starting rtl_ais_listener service")
         returncode, stderr = self.run_systemctl("start", "rtl_ais_listener.service")
@@ -110,10 +119,11 @@ class BootBoy:
         import subprocess
 
         crontab_entry = (
-            "07 13 * * * $HOME/github/mellow-manatee-v1/bin/collector.sh > /dev/null 2>&1"
+            "07 13 * * * $HOME/github/mellow-manatee-v1/bin/collector.sh "
+            "> /dev/null 2>&1"
         )
 
-        # Always overwrite — collector is dedicated to this workload and must have
+        # Always overwrite: collector is dedicated to this workload and must have
         # exactly one cron entry.
         new_crontab = crontab_entry + "\n"
         try:
@@ -124,8 +134,8 @@ class BootBoy:
                 print("crontab updated for wombat.")
             else:
                 print("failed to update wombat's crontab.")
-        except Exception as e:
-            print(f"error updating wombat's crontab: {e}")
+        except Exception as error:
+            print(f"error updating wombat's crontab: {error}")
 
     def execute(self, target: str) -> None:
         self.configuration(target)

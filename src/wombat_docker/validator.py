@@ -10,9 +10,8 @@ import os
 
 from abc import ABC, abstractmethod
 
-from helper.json_helper import JsonHelper
-
 from helper.postgres import PostGres
+from helper.json_helper import JsonHelper
 
 
 class Validator(ABC):
@@ -47,8 +46,8 @@ class ManateeValidator(Validator):
         self.fresh_dir = os.environ.get("FRESH_DIR", "/var/wombat/fresh/manatee")
         self.success_dir = os.environ.get("SUCCESS_DIR", "/var/wombat/manatee/success")
 
-        self.failure = 0
-        self.success = 0
+        self.failure: int = 0
+        self.success: int = 0
 
     def file_failure(self, file_name: str) -> None:
         self.logger.info("file failure: %s", file_name)
@@ -86,29 +85,31 @@ class ManateeValidator(Validator):
         self.logger.info("checking load log: %s", test_file_name)
 
         try:
+            raw_buffer = self.json_helper.raw_json
+
             candidate = self.postgres.load_log_select_by_file_name(test_file_name)
             if candidate is not None:
                 self.logger.info("skipping already processed: %s", test_file_name)
                 return False
 
-            site_name = self.json_helper.raw_json["geoLoc"]["siteName"]
+            site_name = raw_buffer["geoLoc"]["siteName"]
             geo_locs = self.postgres.geo_loc_select_by_site(site_name)
             if len(geo_locs) == 0:
                 self.logger.error("missing geo_loc for site: %s", site_name)
                 return False
 
             load_log = {
-                "crate_name": self.json_helper.raw_json["crate"],
-                "epoch_seconds": self.json_helper.raw_json["timeStamp"]["epochSeconds"],
+                "crate_name": raw_buffer["crate"],
+                "epoch_seconds": raw_buffer["timeStamp"]["epochSeconds"],
                 "file_name": test_file_name,
                 "geo_loc_id": geo_locs[0].id,
-                "host_name": self.json_helper.raw_json["equipment"]["hostName"],
+                "host_name": raw_buffer["equipment"]["hostName"],
                 "load_time": datetime.datetime.now(),
-                "mode": self.json_helper.raw_json["job"]["mode"],
-                "obs_time": self.json_helper.raw_json["timeStamp"]["iso8601"],
-                "peaker_quantity": len(self.json_helper.raw_json["observations"]),
+                "mode": raw_buffer["job"]["mode"],
+                "obs_time": raw_buffer["timeStamp"]["iso8601"],
+                "peaker_quantity": len(raw_buffer["observations"]),
                 "site_name": site_name,
-                "task": self.json_helper.raw_json["job"]["task"],
+                "task": raw_buffer["job"]["task"],
             }
 
             self.postgres.load_log_insert(load_log)
@@ -116,7 +117,9 @@ class ManateeValidator(Validator):
 
             return True
         except Exception as error:
-            self.logger.error("postgres insert failed for %s: %s", test_file_name, error)
+            self.logger.error(
+                "postgres insert failed for %s: %s", test_file_name, error
+            )
 
         return False
 
@@ -159,9 +162,9 @@ class ManateeValidator(Validator):
         if self.load_log_test(file_name):
             self.file_success(file_name)
             return True
-        else:
-            self.file_failure(file_name)
-            return False
+
+        self.file_failure(file_name)
+        return False
 
     def execute(self) -> int:
         self.logger.info("validator fresh dir: %s", self.fresh_dir)
@@ -178,9 +181,12 @@ class ManateeValidator(Validator):
 
             self.file_processor(target)
 
-        self.logger.info("validator success: %d failure: %d", self.success, self.failure)
+        self.logger.info(
+            "validator success: %d failure: %d", self.success, self.failure
+        )
 
         return 0
+
 
 # ;;; Local Variables: ***
 # ;;; mode:python ***

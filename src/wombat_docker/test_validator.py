@@ -54,7 +54,9 @@ def test_file_processor_success_path(monkeypatch) -> None:
     validator, _postgres = _validator()
     monkeypatch.setattr("validator.os.path.isfile", lambda _name: True)
     monkeypatch.setattr("validator.os.path.getsize", lambda _name: 10)
-    monkeypatch.setattr(validator.json_helper, "json_file_reader", lambda _name, _flag: True)
+    monkeypatch.setattr(
+        validator.json_helper, "json_file_reader", lambda _name, _flag: True
+    )
     validator.json_helper.raw_json = {
         "fileName": "ok.json",
         "version": 1,
@@ -85,12 +87,18 @@ def test_execute_processes_non_raw_targets(monkeypatch) -> None:
     validator, _postgres = _validator()
 
     monkeypatch.setattr("validator.os.chdir", lambda _path: None)
-    monkeypatch.setattr("validator.os.listdir", lambda _path: ["b.json", "a.raw", "a.json"])
+    monkeypatch.setattr(
+        "validator.os.listdir", lambda _path: ["b.json", "a.raw", "a.json"]
+    )
 
     processed = []
     skipped_raw = []
-    monkeypatch.setattr(validator, "file_processor", lambda name: processed.append(name) or True)
-    monkeypatch.setattr(validator, "file_success", lambda name: skipped_raw.append(name))
+    monkeypatch.setattr(
+        validator, "file_processor", lambda name: processed.append(name) or True
+    )
+    monkeypatch.setattr(
+        validator, "file_success", lambda name: skipped_raw.append(name)
+    )
 
     result = validator.execute()
 

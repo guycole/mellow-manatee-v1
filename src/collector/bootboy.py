@@ -7,6 +7,7 @@
 import json
 import socket
 import sys
+from json import JSONDecodeError
 from typing import Any
 
 import yaml
@@ -17,13 +18,14 @@ class BootBoy:
         import subprocess
 
         # Use --no-block for start so systemd queues the job and returns
-        # immediately, preventing a deadlock when bootboy itself runs under systemd.
+        # immediately, preventing a deadlock when bootboy itself runs under
+        # systemd.
         if action == "start":
             cmd = ["systemctl", "--no-block", action, service_name]
         else:
             cmd = ["systemctl", action, service_name]
 
-        proc = subprocess.run(cmd, capture_output=True, text=True)
+        proc = subprocess.run(cmd, capture_output=True, check=False, text=True)
         stderr = proc.stderr.strip()
         return proc.returncode, stderr
 
@@ -51,7 +53,7 @@ class BootBoy:
         try:
             with open(admin_json_path, "r", encoding="utf-8") as in_file:
                 config_data = json.load(in_file)
-        except Exception as error:
+        except (JSONDecodeError, OSError) as error:
             print(f"Error reading {admin_json_path}: {error}")
             sys.exit(1)
 
@@ -85,7 +87,7 @@ class BootBoy:
             with open("config.yaml", "w", encoding="utf-8") as out_file:
                 yaml.dump(yaml_config, out_file, default_flow_style=False)
             print("config.yaml generated successfully.")
-        except Exception as error:
+        except (OSError, TypeError, yaml.YAMLError) as error:
             print(f"Error writing config.yaml: {error}")
             sys.exit(1)
 
@@ -105,10 +107,13 @@ class BootBoy:
             print(f"failed to start rtl_ais.service: {stderr}")
 
     def manage_rtl_ais_listener(self) -> None:
-        # Only start; never enable. rtl_ais_listener must not auto-start at boot;
+        # Only start; never enable. rtl_ais_listener must not auto-start at
+        # boot;
         # bootboy.py is the sole entry point that starts this service.
         print("starting rtl_ais_listener service")
-        returncode, stderr = self.run_systemctl("start", "rtl_ais_listener.service")
+        returncode, stderr = self.run_systemctl(
+            "start", "rtl_ais_listener.service"
+        )
         if returncode == 0:
             print("rtl_ais_listener.service start queued.")
             self.verify_service_active("rtl_ais_listener.service")
@@ -123,18 +128,22 @@ class BootBoy:
             "> /dev/null 2>&1"
         )
 
-        # Always overwrite: collector is dedicated to this workload and must have
+        # Always overwrite: collector is dedicated to this workload and must
+        # have
         # exactly one cron entry.
         new_crontab = crontab_entry + "\n"
         try:
             proc = subprocess.run(
-                ["crontab", "-u", "wombat", "-"], input=new_crontab, text=True
+                ["crontab", "-u", "wombat", "-"],
+                check=False,
+                input=new_crontab,
+                text=True,
             )
             if proc.returncode == 0:
                 print("crontab updated for wombat.")
             else:
                 print("failed to update wombat's crontab.")
-        except Exception as error:
+        except OSError as error:
             print(f"error updating wombat's crontab: {error}")
 
     def execute(self, target: str) -> None:
@@ -144,9 +153,7 @@ class BootBoy:
         self.manage_rtl_ais()
         self.manage_rtl_ais_listener()
 
-#
-#
-#
+
 if __name__ == "__main__":
     target = socket.gethostname()
     # target = "pi4k"

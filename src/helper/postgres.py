@@ -9,9 +9,8 @@
 # from sqlalchemy import select
 
 import datetime
-import time
 
-from typing import List, Dict
+from typing import Any, List
 
 import sqlalchemy
 from sqlalchemy import and_
@@ -23,8 +22,6 @@ from .sql_table import (
     DailyScore,
     GeoLoc,
     LoadLog,
-    Observation,
-    Wap
 )
 
 class PostGres:
@@ -34,7 +31,7 @@ class PostGres:
     def __init__(self, session: sqlalchemy.orm.session.sessionmaker):
         self.Session = session
 
-    def daily_score_insert_or_update(self, args: dict[str, any]) -> DailyScore:
+    def daily_score_insert_or_update(self, args: dict[str, Any]) -> DailyScore:
         candidate = DailyScore(args)
 
         try:
@@ -42,8 +39,9 @@ class PostGres:
                 existing = session.scalars(
                     select(DailyScore).filter(
                         and_(
-                            DailyScore.score_date == candidate.score_date,
+                            DailyScore.crate_name == candidate.crate_name,
                             DailyScore.host_name == candidate.host_name,
+                            DailyScore.score_date == candidate.score_date,
                         )
                     )
                 ).first()
@@ -52,7 +50,7 @@ class PostGres:
                     session.add(candidate)
                 else:
                     existing.file_quantity += candidate.file_quantity
-                    existing.peaker_quantity += candidate.peaker_quantity
+                    existing.obs_quantity += candidate.obs_quantity
 
                 session.commit()
         except Exception as error:
@@ -61,13 +59,39 @@ class PostGres:
         return candidate
 
     def geo_loc_select_by_site(self, site_name: str) -> List[GeoLoc]:
-        statement = select(GeoLoc).filter_by(site_name=site_name).order_by(GeoLoc.fix_time)
+        statement = (
+            select(GeoLoc)
+            .filter_by(site_name=site_name)
+            .order_by(desc(GeoLoc.fix_time), desc(GeoLoc.id))
+        )
 
         with self.Session() as session:
             return session.scalars(statement).all()
 
-    def load_log_insert(self, args: dict[str, any]) -> LoadLog:
-        candidate = LoadLog(args)
+    @staticmethod
+    def _normalize_load_log_args(args: dict[str, Any]) -> dict[str, Any]:
+        key_map = {
+            "crateName": "crate_name",
+            "epochSeconds": "epoch_seconds",
+            "fileName": "file_name",
+            "geoLocId": "geo_loc_id",
+            "hostName": "host_name",
+            "loadTime": "load_time",
+            "obsQuantity": "obs_quantity",
+            "obsTime": "obs_time",
+            "siteName": "site_name",
+            "sourceFileName": "source_file_name",
+            "taskName": "task",
+        }
+
+        normalized = {}
+        for key, value in args.items():
+            normalized[key_map.get(key, key)] = value
+
+        return normalized
+
+    def load_log_insert(self, args: dict[str, Any]) -> LoadLog:
+        candidate = LoadLog(self._normalize_load_log_args(args))
 
         try:
             with self.Session() as session:
@@ -97,50 +121,6 @@ class PostGres:
             return session.scalars(
                 select(LoadLog).filter_by(file_name=file_name)
             ).first()
-
-    def observation_insert(self, args: dict[str, any]) -> Observation:
-        candidate = Observation(args)
-
-        try:
-            with self.Session() as session:
-                session.add(candidate)
-                session.commit()
-        except Exception as error:
-            print(error)
-
-        return candidate
-
-    def wap_insert(self, args: dict[str, any]) -> Wap:
-        candidate = Wap(args)
-
-        try:
-            with self.Session() as session:
-                session.add(candidate)
-                session.commit()
-        except Exception as error:
-            print(error)
-
-        return candidate
-
-    def wap_select(self, wap: dict[str, any]) -> list[Wap]:
-        statement = select(Wap).filter(
-            and_(
-                Wap.bssid == wap["bssid"].lower(),
-                Wap.ssid == wap["ssid"],
-                Wap.capability == wap["capability"],
-                Wap.cipher == wap["cipher"],
-                Wap.frequency_mhz == wap["frequency_mhz"],
-            )
-        ).order_by(Wap.version)
-
-        with self.Session() as session:
-            return session.scalars(statement).all()
-
-    def wap_select_by_bssid(self, bssid: str) -> list[Wap]:
-        statement = select(Wap).filter_by(bssid=bssid.lower()).order_by(Wap.version)
-
-        with self.Session() as session:
-            return session.scalars(statement).all()
 
 # ;;; Local Variables: ***
 # ;;; mode:python ***

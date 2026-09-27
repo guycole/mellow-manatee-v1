@@ -2,25 +2,36 @@
 -- Title: load_log.psql
 -- Description: file load history
 --
+-- crate_name is crateName (from json)
 -- epoch_seconds is from timeStamp.epochSeconds
 -- file_name within fresh_dir
--- file_time is from timeStamp.iso8601
--- file_type is from project i.e. manatee_v1
+-- geo_loc_id joins hyena_geo_loc for location
 -- host_name is from equipment.hostName
 -- load_time is when file was processed
 -- obs_quantity is population of observations in file
--- site is from preamble geoLoc.siteName
+-- obs_time is from timeStamp.iso8601
+-- project is from project i.e. manatee_v1
+-- site_name is from preamble geoLoc.siteName
+-- source_file_name is original collection file name
+-- task from receiver.task
 --
 create table manatee_load_log (
-  id            bigserial    primary key,
-  epoch_seconds bigint       not null,
-  file_name     varchar(48)  unique not null,
-  file_time     timestamp    not null,
-  file_type     varchar(48)  not null,
-  host_name     varchar(16)  not null,
-  load_time     timestamp    not null default CURRENT_TIMESTAMP,
-  obs_quantity  smallint     not null
+  id                bigserial    primary key,
+  crate_name        varchar(32)  not null,
+  epoch_seconds     bigint       not null,
+  file_name         varchar(48)  unique not null,
+  geo_loc_id        bigint       not null,
+  constraint        geo_loc_id   foreign key(geo_loc_id) references manatee_geo_loc(id),
+  host_name         varchar(32)  not null,
+  load_time         timestamp    not null default CURRENT_TIMESTAMP,
+  obs_quantity      smallint     not null,
+  obs_time          timestamp    not null,
+  site_name         varchar(32)  not null,
+  source_file_name  varchar(48)  unique not null,
+  task              varchar(32)  not null
 );
 
-grant select, insert, update, delete on manatee_load_log_load_log to manatee_client;
-grant usage, select on sequence manatee_load_log_load_log_id_seq to manatee_client;
+grant select, insert, update, delete on manatee_load_log to manatee_client;
+grant usage, select on sequence manatee_load_log_id_seq to manatee_client;
+
+create unique index manatee_load_log_ndx on manatee_load_log(crate_name, epoch_seconds, host_name);

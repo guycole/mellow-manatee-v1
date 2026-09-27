@@ -111,14 +111,26 @@ class ManateeValidator(Validator):
                 "geo_loc_id": geo_locs[0].id,
                 "host_name": raw_buffer["equipment"]["hostName"],
                 "load_time": datetime.datetime.now(),
-                "mode": raw_buffer["job"]["mode"],
+                "obs_quantity": len(raw_buffer["observations"]),
                 "obs_time": raw_buffer["timeStamp"]["iso8601"],
-                "peaker_quantity": len(raw_buffer["observations"]),
                 "site_name": site_name,
+                "source_file_name": raw_buffer["sourceFileName"],
                 "task": raw_buffer["job"]["task"],
             }
 
             self.postgres.load_log_insert(load_log)
+
+            daily_score = {
+                "crate_name": raw_buffer["crate"],
+                "file_quantity": 1,
+                "host_name": raw_buffer["equipment"]["hostName"],
+                "obs_quantity": len(raw_buffer["observations"]),
+                "score_date": datetime.datetime.fromisoformat(
+                    raw_buffer["timeStamp"]["iso8601"]
+                ).date(),
+            }
+            self.postgres.daily_score_insert_or_update(daily_score)
+
             self.logger.info("load log insert complete: %s", test_file_name)
 
             return True

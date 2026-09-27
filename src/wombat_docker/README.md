@@ -59,7 +59,7 @@ Files: ../helper/postgres.py and ../helper/sql_table.py
 - Implements data access methods used by the validator.
 - Load-log fields currently include:
   crate_name, epoch_seconds, file_name, geo_loc_id, host_name, load_time,
-  mode, obs_time, peaker_quantity, site_name, task.
+  obs_quantity, obs_time, site_name, source_file_name, task.
 - Primary idempotency key in current implementation is file_name lookup.
 
 ## Runtime Configuration

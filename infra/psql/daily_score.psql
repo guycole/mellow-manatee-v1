@@ -1,0 +1,23 @@
+--
+-- Title: daily_score.psql
+-- Description: daily activity summary
+--
+-- crate_name is crateName (from json)
+-- file_quantity is total daily files
+-- host_name is from equipment.hostName
+-- obs_quantity is total daily observations
+-- score_date is summary date
+--
+create table manatee_daily_score (
+  id             bigserial    primary key,
+  crate_name     varchar(32)  not null,
+  file_quantity  integer      not null,
+  host_name      varchar(16)  not null,
+  obs_quantity   integer      not null,
+  score_date     date         not null
+);
+
+grant select, insert, update, delete on manatee_daily_score to manatee_client;
+grant usage, select on sequence manatee_daily_score_id_seq to manatee_client;
+
+create unique index manatee_daily_score_ndx1 on manatee_daily_score(crate_name, host_name, score_date);

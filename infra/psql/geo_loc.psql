@@ -1,0 +1,32 @@
+--
+-- Title: geo_loc.psql
+-- Description: geographic location look up table
+-- altitude in meters
+-- course in degrees
+-- fix_time is GPS fix time, not apply to fixed sites
+-- host_name
+-- latitude plus north decimal degrees
+-- longitude plus west decimal degrees
+-- site_name is geographic name or start with "mobile"
+-- speed in km/h
+--
+create table manatee_geo_loc (
+  id         bigserial    primary key,
+  altitude   real         not null,
+  course     real         not null,
+  fix_time   timestamp    not null default CURRENT_TIMESTAMP,
+  host_name  varchar(16)  not null,
+  latitude   real         not null,
+  longitude  real         not null,
+  site_name  varchar(48)  not null,
+  speed      real         not null
+);
+
+grant select, insert, update, delete on manatee_geo_loc to manatee_client;
+grant usage, select on sequence manatee_geo_loc_id_seq to manatee_client;
+
+-- anderson01
+insert into manatee_geo_loc(altitude, course, fix_time, host_name, latitude, longitude, site_name, speed) values(118.6, 0, '2000-1-1', 'stub', 40.4174, -122.2405, 'anderson01', 0);
+
+-- vallejo01
+insert into manatee_geo_loc(altitude, course, fix_time, host_name, latitude, longitude, site_name, speed) values(0, 0, '2000-1-1', 'stub', 38.1080, -122.2680, 'vallejo01', 0);

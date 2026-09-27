@@ -12,6 +12,7 @@ class FakePostgres:
     def __init__(self):
         self.selected = None
         self.inserted = []
+        self.daily_scores = []
         self.geo_locs = [FakeGeoLoc(42)]
 
     def load_log_select_by_file_name(self, _file_name):
@@ -22,6 +23,9 @@ class FakePostgres:
 
     def load_log_insert(self, load_log):
         self.inserted.append(load_log)
+
+    def daily_score_insert_or_update(self, daily_score):
+        self.daily_scores.append(daily_score)
 
 
 def _validator() -> tuple[ManateeValidator, FakePostgres]:
@@ -38,6 +42,7 @@ def test_load_log_test_inserts_when_not_previously_processed() -> None:
         "equipment": {"hostName": "host-a"},
         "job": {"mode": "default", "task": "task-a", "project": "manatee-v1"},
         "geoLoc": {"siteName": "site-a"},
+        "sourceFileName": "source-a.json",
         "observations": [],
     }
 
@@ -48,6 +53,9 @@ def test_load_log_test_inserts_when_not_previously_processed() -> None:
     assert postgres.inserted[0]["file_name"] == "abc.json"
     assert postgres.inserted[0]["epoch_seconds"] == 1
     assert postgres.inserted[0]["geo_loc_id"] == 42
+    assert postgres.inserted[0]["obs_quantity"] == 0
+    assert postgres.inserted[0]["source_file_name"] == "source-a.json"
+    assert len(postgres.daily_scores) == 1
 
 
 def test_file_processor_success_path(monkeypatch) -> None:

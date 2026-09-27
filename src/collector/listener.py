@@ -12,16 +12,19 @@ import socket
 import sys
 import time
 import uuid
+from datetime import datetime, timezone
 from typing import Any
 
 import pydantic
-
-from pyais import decode
-
 import yaml
+from pyais import decode
 from yaml.loader import SafeLoader
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+)
+
 logger = logging.getLogger("listener")
 
 
@@ -37,25 +40,10 @@ class Listener:
         self.dump_dir = args["dumpDir"]
         self.crate_name = args["crateName"]
         self.fresh_dir = args["freshDir"]
-
         self.host_name = args["equipment"]["hostName"]
-        self.host_type = args["equipment"]["hostType"]
-
-        self.altitude = args["geoLoc"]["altitude"]
-        self.latitude = args["geoLoc"]["latitude"]
-        self.longitude = args["geoLoc"]["longitude"]
-        self.site_name = args["geoLoc"]["siteName"]
-
-        self.antenna = args["receiver"]["antenna"]
-        self.receiver_id = args["receiver"]["receiverId"]
-        self.receiver_mode = args["receiver"]["mode"]
-        self.receiver_task = args["receiver"]["task"]
-        self.receiver_type = args["receiver"]["type"]
 
     def base_file_name(self) -> str:
-        import datetime
-
-        datetime_str = datetime.datetime.now().strftime("%Y%m%d_%H")
+        datetime_str = datetime.now(tz=timezone.utc).strftime("%Y%m%d_%H")
         file_name = f"{self.dump_dir}/manatee_{self.host_name}_{datetime_str}"
         return file_name
 
@@ -98,7 +86,7 @@ class Listener:
                         message = decode(*parts_buffer.pop(seq_id)).asdict()
                         print(message, flush=True)
                         decoded_messages.append(message)
-            except Exception as error:
+            except (IndexError, TypeError, ValueError) as error:
                 logger.warning("decode error: %s", error)
 
         raw_file_name = f"{base_file_name}.json"
@@ -121,7 +109,9 @@ class Listener:
             observations.append(observation.model_dump(by_alias=True))
 
         with open(raw_file_name, mode) as out_file:
-            out_file.write(json.dumps(observations, default=str).encode("utf-8"))
+            out_file.write(
+                json.dumps(observations, default=str).encode("utf-8")
+            )
             out_file.write(b"\n")
 
         return fresh_flag
@@ -132,6 +122,7 @@ class Listener:
             logger.info("listening on UDP 127.0.0.1:10110")
 
             while True:
+                # blocks
                 data, _ = sock.recvfrom(4096)
 
                 bfn = self.base_file_name()
@@ -158,7 +149,7 @@ if __name__ == "__main__":
         except yaml.YAMLError as error:
             logger.error("YAML parse error: %s", error)
 
-    exit(1)
+    sys.exit(1)
 
 # ;;; Local Variables: ***
 # ;;; mode:python ***

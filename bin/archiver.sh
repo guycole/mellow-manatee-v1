@@ -7,23 +7,29 @@
 #
 PATH=/bin:/usr/bin:/etc:/usr/local/bin; export PATH
 #
+HOST_NAME=$(hostname)
 TODAY=$(date '+%Y-%m-%d')
-FILE_NAME="manatee-${TODAY}.tgz"
+FILE_NAME="${HOST_NAME}-${TODAY}.tgz"
 #
+ARCHIVE_DIR="archive"
 EXPORT_DIR="export"
-SOURCE_DIR="manatee"
+SOURCE_DIR="manatee-v1"
 SUCCESS_DIR="success"
-WORK_DIR="/var/wombat/fresh"
+WORK_DIR="/var/wombat/manatee"
 #
 echo "start archiver" 
 #
 cd ${WORK_DIR}
 #
-mv ${SUCCESS_DIR} ${SOURCE_DIR}
-mkdir ${SUCCESS_DIR}
+mv "${WORK_DIR}/${SUCCESS_DIR}" "${WORK_DIR}/${SOURCE_DIR}"
+mkdir "${WORK_DIR}/${SUCCESS_DIR}"
 #
-tar -cvzf ${FILE_NAME} ${SOURCE_DIR}
-mv ${FILE_NAME} ${EXPORT_DIR}
+# archive everything
+tar -cvzf "${ARCHIVE_DIR}/${FILE_NAME}" ${SOURCE_DIR}
+#
+# export only collector files
+rm -f "${WORK_DIR}/${SOURCE_DIR}"/manatee*
+tar -cvzf "${WORK_DIR}/${EXPORT_DIR}/${FILE_NAME}" ${SOURCE_DIR}
 #
 echo "cleanup"
 rm -rf ${SOURCE_DIR}

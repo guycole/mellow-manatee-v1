@@ -1,7 +1,7 @@
-crateName: wombat04
+crateName: xwombat04
 rawDir: /tmp
 equipment:
-  hostName: c4i
+  hostName: xc4i
   hostType: odroid c4
 freshDir: /var/wombat/fresh/manatee
 geoLoc:

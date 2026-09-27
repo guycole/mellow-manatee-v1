@@ -10,5 +10,7 @@ export PGHOST=localhost
 export PGPASSWORD=woofwoof
 export PGUSER=manatee_admin
 #
+psql $PGDATABASE -c "drop table manatee_daily_score"
 psql $PGDATABASE -c "drop table manatee_load_log"
+psql $PGDATABASE -c "drop table manatee_geo_loc"
 #

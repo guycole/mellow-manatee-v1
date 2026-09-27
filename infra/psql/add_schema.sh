@@ -12,5 +12,7 @@ export PGHOST=localhost
 export PGPASSWORD=woofwoof
 export PGUSER=manatee_admin
 #
+psql < daily_score.psql
+psql < geo_loc.psql
 psql < load_log.psql
 #

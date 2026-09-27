@@ -1,0 +1,11 @@
+[project]
+name = "collector"
+version = "0.0.0"
+requires-python = ">=3.10"
+
+[tool.black]
+line-length = 79
+target-version = ["py314"]
+
+[tool.pytest.ini_options]
+python_files = ["test_*.py"]

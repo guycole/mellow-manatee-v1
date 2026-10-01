@@ -151,9 +151,11 @@ class ManateeCollector(Collector):
         datetime_str = datetime.datetime.now(
             tz=datetime.timezone.utc
         ).strftime("%Y%m%d_%H")
+
         file_name = (
             f"{self.raw_dir}/manatee_{self.equipment.host_name}_{datetime_str}"
         )
+        
         return file_name
 
     def get_observations(self, file_name: str) -> list[Observation]:

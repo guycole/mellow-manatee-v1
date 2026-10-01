@@ -12,11 +12,13 @@ import socket
 import sys
 import time
 import uuid
+
 from datetime import datetime, timezone
 from typing import Any
 
 import pydantic
 import yaml
+
 from pyais import decode
 from yaml.loader import SafeLoader
 
@@ -37,14 +39,14 @@ class Observation(pydantic.BaseModel):
 
 class Listener:
     def __init__(self, args: dict[str, Any]):
-        self.dump_dir = args["dumpDir"]
         self.crate_name = args["crateName"]
         self.fresh_dir = args["freshDir"]
         self.host_name = args["equipment"]["hostName"]
+        self.raw_dir = args["rawDir"]
 
     def base_file_name(self) -> str:
         datetime_str = datetime.now(tz=timezone.utc).strftime("%Y%m%d_%H")
-        file_name = f"{self.dump_dir}/manatee_{self.host_name}_{datetime_str}"
+        file_name = f"{self.raw_dir}/manatee_{self.host_name}_{datetime_str}"
         return file_name
 
     def write_raw_file(self, base_file_name: str, data: bytes) -> bool:

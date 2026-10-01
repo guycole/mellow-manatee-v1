@@ -11,7 +11,7 @@ env:
 
 jobs:
   build-manatee:
-    name: Build and push mellow-manatee
+    name: Build and push wombat-manatee
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -38,7 +38,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/mellow-manatee
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/wombat-manatee
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}

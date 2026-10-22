@@ -1,7 +1,7 @@
 import json
-import uuid
 
 from collector import ManateeCollector, TimeStamp
+from listener import Listener
 
 
 def _config(raw_dir: str, fresh_dir: str) -> dict[str, object]:
@@ -48,10 +48,7 @@ def test_collector_derives_job_from_receiver_task(tmp_path) -> None:
     assert collector.job.task == "manatee-v1-ra"
 
 
-def test_execute_writes_expected_payload_file(tmp_path, monkeypatch) -> None:
-    fixed_uuid = uuid.UUID("5cc9fa9d-5065-400e-b578-76633bdd3699")
-    monkeypatch.setattr("collector.uuid.uuid4", lambda: fixed_uuid)
-
+def test_execute_moves_listener_payload_to_fresh(tmp_path) -> None:
     raw_dir = tmp_path / "raw"
     fresh_dir = tmp_path / "fresh"
     raw_dir.mkdir()
@@ -59,27 +56,65 @@ def test_execute_writes_expected_payload_file(tmp_path, monkeypatch) -> None:
 
     source_name = "manatee_demo-host_20000101_00.json"
     source_path = raw_dir / source_name
-    source_path.write_text('[{"name": "obs1"}]\n', encoding="utf-8")
+    source_payload = (
+        '{"crate":"demo-crate","fileName":"manatee_demo-host_20000101_00.json",'
+        '"version":1,"equipment":{"antenna":"dipole","receiverId":7,'
+        '"receiverType":"rtl","hostName":"demo-host","hostType":"laptop"},'
+        '"geoLoc":{"altitude":100.0,"latitude":42.0,"longitude":-71.0,'
+        '"siteName":"demo-site"},'
+        '"job":{"mode":"rtl_ais","project":"manatee-v1","task":"manatee-v1-ra"},'
+        '"sourceFileName":"manatee_demo-host_20000101_00.raw",'
+        '"timeStamp":{"epochSeconds":0,"iso8601":"1970-01-01T00:00:00+00:00"},'
+        '"observations":[{"name":"obs1"}]}'
+    )
+    source_path.write_text(source_payload, encoding="utf-8")
+
+    raw_blob_name = "manatee_demo-host_20000101_00.raw"
+    raw_blob_path = raw_dir / raw_blob_name
+    raw_blob_path.write_bytes(b"raw-data")
 
     collector = ManateeCollector(_config(str(raw_dir), str(fresh_dir)))
-    collector.time_stamp = TimeStamp(epoch_seconds=0)
 
     result = collector.execute()
 
     assert result == 0
 
-    output_path = fresh_dir / f"{fixed_uuid}.json"
+    output_path = fresh_dir / source_name
     assert output_path.exists()
+    assert output_path.read_text(encoding="utf-8") == source_payload
+    assert (fresh_dir / raw_blob_name).exists()
 
-    payload = json.loads(output_path.read_text(encoding="utf-8"))
-    assert payload["crateName"] == "demo-crate"
-    assert payload["fileName"] == f"{fixed_uuid}.json"
-    assert payload["job"]["project"] == "manatee-v1-ra"
-    assert payload["receiver"]["task"] == "manatee-v1-ra"
-    assert payload["source_file_name"] == source_name
+
+def test_listener_writes_validator_ready_payload(tmp_path, monkeypatch) -> None:
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir()
+
+    config = _config(str(raw_dir), str(tmp_path / "fresh"))
+    listener = Listener(config)
+
+    monkeypatch.setattr("listener.time.time", lambda: 0)
+    monkeypatch.setattr("listener.uuid.uuid4", lambda: "00000000-0000-0000-0000-000000000001")
+
+    class _Decoded:
+        def asdict(self):
+            return {"mmsi": 123}
+
+    monkeypatch.setattr("listener.decode", lambda *_args: _Decoded())
+
+    base_file_name = f"{raw_dir}/manatee_demo-host_19700101_00"
+    data = b"!AIVDM,1,1,,A,13aG?P0000PD;88MD5MTDwwj0D0u,0*7D\\n"
+
+    result = listener.write_decode_file(base_file_name, data)
+
+    assert result is True
+    payload_path = raw_dir / "manatee_demo-host_19700101_00.json"
+    payload = json.loads(payload_path.read_text(encoding="utf-8"))
+    assert payload["crate"] == "demo-crate"
+    assert payload["fileName"] == "manatee_demo-host_19700101_00.json"
+    assert payload["version"] == 1
+    assert payload["job"]["project"] == "manatee-v1"
+    assert payload["sourceFileName"] == "manatee_demo-host_19700101_00.raw"
     assert payload["timeStamp"]["epochSeconds"] == 0
-    assert payload["timeStamp"]["iso8601"] == "1970-01-01T00:00:00+00:00"
-    assert payload["observations"] == [{"name": "obs1"}]
-
-    moved_source_path = fresh_dir / source_name
-    assert moved_source_path.exists()
+    assert payload["observations"] == [
+        {"mmsi": 123, "epochSeconds": 0, "uuid": "00000000-0000-0000-0000-000000000001"}
+    ]

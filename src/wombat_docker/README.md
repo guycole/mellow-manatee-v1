@@ -44,7 +44,7 @@ File: validator.py
 File: ../helper/json_helper.py
 
 - Defines JSON schema for payload sections:
-  equipment, geoLoc, job, receiver, timeStamp, crateName, fileName, version,
+  equipment, geoLoc, timeStamp, job, crate, fileName, sourceFileName, version,
   observations.
 - Enforces required fields and disallows additional properties.
 - Verifies business checks in validator.py:

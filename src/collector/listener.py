@@ -42,6 +42,9 @@ class Listener:
         self.crate_name = args["crateName"]
         self.fresh_dir = args["freshDir"]
         self.host_name = args["equipment"]["hostName"]
+        self.host_type = args["equipment"]["hostType"]
+        self.geo_loc = args["geoLoc"]
+        self.receiver = args["receiver"]
         self.raw_dir = args["rawDir"]
 
     def base_file_name(self) -> str:
@@ -78,7 +81,6 @@ class Listener:
                 seq_id = fields[3]
                 if total_parts == 1:
                     message = decode(sentence).asdict()
-                    print(message, flush=True)
                     decoded_messages.append(message)
                 else:
                     if seq_id not in parts_buffer:
@@ -86,7 +88,6 @@ class Listener:
                     parts_buffer[seq_id].append(sentence)
                     if len(parts_buffer[seq_id]) == total_parts:
                         message = decode(*parts_buffer.pop(seq_id)).asdict()
-                        print(message, flush=True)
                         decoded_messages.append(message)
             except (IndexError, TypeError, ValueError) as error:
                 logger.warning("decode error: %s", error)
@@ -94,12 +95,51 @@ class Listener:
         raw_file_name = f"{base_file_name}.json"
         if os.path.exists(raw_file_name):
             fresh_flag = False
-            mode = "ab"
+            mode = "w"
         else:
             fresh_flag = True
-            mode = "wb"
+            mode = "w"
 
         epoch_seconds = int(time.time())
+        iso8601 = datetime.fromtimestamp(
+            epoch_seconds, tz=timezone.utc
+        ).isoformat()
+        json_file_name = os.path.basename(raw_file_name)
+        source_file_name = f"{os.path.basename(base_file_name)}.raw"
+
+        payload: dict[str, Any]
+        if os.path.exists(raw_file_name):
+            try:
+                with open(raw_file_name, "r", encoding="utf-8") as in_file:
+                    payload = json.load(in_file)
+            except (json.JSONDecodeError, OSError) as error:
+                logger.error("decode file read failure for %s: %s", raw_file_name, error)
+                return False
+        else:
+            payload = {
+                "crate": self.crate_name,
+                "equipment": {
+                    "antenna": self.receiver["antenna"],
+                    "receiverId": self.receiver["receiverId"],
+                    "receiverType": self.receiver["type"],
+                    "hostName": self.host_name,
+                    "hostType": self.host_type,
+                },
+                "fileName": json_file_name,
+                "geoLoc": self.geo_loc,
+                "job": {
+                    "mode": self.receiver["mode"],
+                    "project": "manatee-v1",
+                    "task": self.receiver["task"],
+                },
+                "observations": [],
+                "sourceFileName": source_file_name,
+                "timeStamp": {
+                    "epochSeconds": epoch_seconds,
+                    "iso8601": iso8601,
+                },
+                "version": 1,
+            }
 
         observations: list[dict[str, Any]] = []
         for message in decoded_messages:
@@ -110,11 +150,22 @@ class Listener:
             )
             observations.append(observation.model_dump(by_alias=True))
 
-        with open(raw_file_name, mode) as out_file:
-            out_file.write(
-                json.dumps(observations, default=str).encode("utf-8")
-            )
-            out_file.write(b"\n")
+        if not isinstance(payload.get("observations"), list):
+            logger.error("invalid observations payload for %s", raw_file_name)
+            return False
+
+        payload["observations"].extend(observations)
+        payload["timeStamp"] = {
+            "epochSeconds": epoch_seconds,
+            "iso8601": iso8601,
+        }
+
+        try:
+            with open(raw_file_name, mode, encoding="utf-8") as out_file:
+                out_file.write(json.dumps(payload, default=str, indent=4))
+        except OSError as error:
+            logger.error("decode file write failure for %s: %s", raw_file_name, error)
+            return False
 
         return fresh_flag
 

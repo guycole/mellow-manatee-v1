@@ -201,8 +201,7 @@ class ManateeCollector(Collector):
                     if target.endswith(".raw"):
                         pass
                     elif target.endswith(".json"):
-                        obs = self.get_observations(target)
-                        self.write_manatee(obs, target)
+                        logger.info("listener payload ready for validator: %s", target)
 
                     logger.info("moving %s to %s", target, fresh_target)
                     os.rename(target, fresh_target)

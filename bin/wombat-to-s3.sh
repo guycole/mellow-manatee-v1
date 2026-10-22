@@ -7,7 +7,7 @@
 #
 PATH=/bin:/usr/bin:/etc:/usr/local/bin:/opt/homebrew/bin/aws; export PATH
 #
-DEST_BUCKET=s3://mellow-manatee-uw2-f4343.braingang.net/fresh/
+DEST_BUCKET=s3://mellow-manatee-uw2-f343.braingang.net/fresh/
 #
 # host name is also AWS profile name
 HOST_NAME=$(hostname)
